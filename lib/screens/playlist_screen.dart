@@ -8,6 +8,7 @@ import '../widgets/playlist_tile.dart';
 import '../widgets/song_tile.dart';
 import '../widgets/mini_player.dart';
 import '../core/theme.dart';
+import '../widgets/home_widgets.dart';
 
 class PlaylistScreen extends StatelessWidget {
   PlaylistScreen({super.key});
@@ -133,7 +134,7 @@ class PlaylistScreen extends StatelessWidget {
 
 class PlaylistDetailScreen extends StatelessWidget {
   final Playlist playlist;
-  PlaylistDetailScreen({Key? key, required this.playlist}) : super(key: key);
+  PlaylistDetailScreen({super.key, required this.playlist});
 
   final PlaylistController controller = Get.find<PlaylistController>();
 
@@ -146,55 +147,11 @@ class PlaylistDetailScreen extends StatelessWidget {
           CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              SliverAppBar(
-                expandedHeight: 300,
-                pinned: true,
-                backgroundColor: AppTheme.background,
-                elevation: 0,
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-                  onPressed: () => Get.back(),
-                ),
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [AppTheme.primary.withValues(alpha: 0.3), AppTheme.background],
-                          ),
-                        ),
-                        child: Center(
-                          child: Icon(Icons.library_music, size: 100, color: AppTheme.primary.withValues(alpha: 0.2)),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 40,
-                        left: 20,
-                        right: 20,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              playlist.name,
-                              style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold, letterSpacing: -1),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "${playlist.songs.length} LOCAL TRACKS",
-                              style: TextStyle(color: AppTheme.primary.withValues(alpha: 0.8), fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.5),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              MusicSliverHeader(
+                title: playlist.name,
+                subtitle: "${playlist.songs.length} tracks",
+                icon: Icons.library_music,
+                baseColor: AppTheme.primary,
               ),
               SliverToBoxAdapter(
                 child: Padding(

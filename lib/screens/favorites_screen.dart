@@ -8,7 +8,7 @@ import '../core/theme.dart';
 import '../widgets/home_widgets.dart';
 
 class FavoritesScreen extends StatelessWidget {
-  FavoritesScreen({Key? key}) : super(key: key);
+  FavoritesScreen({super.key});
 
   final FavoritesController controller = Get.put(FavoritesController());
   final MusicController musicController = Get.find<MusicController>();

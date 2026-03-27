@@ -46,11 +46,13 @@ class ProfileScreen extends StatelessWidget {
 
                 // Stats Row
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildStat("128", "Songs"),
-                    _buildStat("12", "Playlists"),
-                    _buildStat("45", "Artists"),
+                    Expanded(child: _buildStatCard("128", "Songs", Icons.music_note_rounded, Colors.blue)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildStatCard("12", "Lists", Icons.playlist_play_rounded, Colors.purple)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildStatCard("45", "Acts", Icons.people_alt_rounded, Colors.orange)),
                   ],
                 ),
                 const SizedBox(height: 40),
@@ -85,12 +87,17 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStat(String value, String label) {
-    return Column(
-      children: [
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-      ],
+  Widget _buildStatCard(String value, String label, IconData icon, Color color) {
+    return GlassContainer(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        children: [
+          Icon(icon, color: color.withValues(alpha: 0.8), size: 24),
+          const SizedBox(height: 8),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(label.toUpperCase(), style: const TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
+        ],
+      ),
     );
   }
 
