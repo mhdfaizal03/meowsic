@@ -111,68 +111,88 @@ class MusicApiService {
   // Multi-tier fallback system
   // ============================================================
 
+  // Piped API mirrors to cycle through on failure
+  static const _pipedMirrors = [
+    "https://pipedapi.kavin.rocks",
+    "https://pipedapi.in.projectsegfau.lt",
+    "https://piped-api.garudalinux.org",
+    "https://api.piped.yt",
+  ];
+
   static Future<String> fetchSongUrl(String id) async {
     debugPrint("Fetching URL for: $id");
 
-    /// Remove gaana prefix if exists
-    final cleanId = id.replaceFirst("gaana:", "");
+    // Strip any source prefix
+    final cleanId = id
+        .replaceFirst("gaana:", "")
+        .replaceFirst("ext:", "");
 
-    // 1. YoutubeExplode (PRIMARY)
-    try {
-      final manifest = await _ytExplode.videos.streamsClient.getManifest(
-        cleanId,
-      );
-      final audioStreams = manifest.audioOnly;
+    // 1. YoutubeExplode (PRIMARY) — accept any valid HTTPS stream
+    if (!kIsWeb) {
+      try {
+        final manifest = await _ytExplode.videos.streamsClient
+            .getManifest(cleanId)
+            .timeout(const Duration(seconds: 15));
+        // Pick highest-quality audio-only stream
+        final audioStreams = manifest.audioOnly.toList()
+          ..sort((a, b) => b.bitrate.bitsPerSecond
+              .compareTo(a.bitrate.bitsPerSecond));
 
-      for (final stream in audioStreams) {
-        final url = stream.url.toString();
-        // ONLY allow valid YouTube HTTPS streams from googlevideo.com
-        if (url.startsWith("https://") &&
-            url.contains("googlevideo.com") &&
-            !url.contains("127.0.0.1") &&
-            !url.contains("localhost")) {
-          debugPrint("Valid googlevideo stream found");
-          return url;
+        for (final stream in audioStreams) {
+          final url = stream.url.toString();
+          if (url.startsWith("https://") &&
+              !url.contains("127.0.0.1") &&
+              !url.contains("localhost")) {
+            debugPrint("YoutubeExplode stream found");
+            return url;
+          }
         }
+      } catch (e) {
+        debugPrint("YoutubeExplode failed: $e");
       }
-    } catch (e) {
-      debugPrint("YoutubeExplode failed: $e");
     }
 
-    // 2. Piped API fallback
-    try {
-      final response = await http.get(
-        Uri.parse("https://pipedapi.kavin.rocks/streams/$cleanId"),
-      );
+    // 2. Piped API mirrors — cycle through all until one works
+    for (final mirror in _pipedMirrors) {
+      try {
+        final response = await http
+            .get(Uri.parse("$mirror/streams/$cleanId"))
+            .timeout(const Duration(seconds: 8));
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final streams = data['audioStreams'];
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          final streams = data['audioStreams'] as List?;
 
-        if (streams != null && streams.isNotEmpty) {
-          for (final stream in streams) {
-            final url = stream['url'];
-            if (url != null && url.startsWith("https://")) {
-              debugPrint("Piped stream used");
-              return url;
+          if (streams != null && streams.isNotEmpty) {
+            // Sort by bitrate descending and pick best
+            streams.sort((a, b) =>
+                ((b['bitrate'] ?? 0) as num)
+                    .compareTo((a['bitrate'] ?? 0) as num));
+
+            for (final stream in streams) {
+              final url = stream['url']?.toString() ?? '';
+              if (url.startsWith("https://")) {
+                debugPrint("Piped stream used ($mirror)");
+                return url;
+              }
             }
           }
         }
+      } catch (e) {
+        debugPrint("Piped mirror $mirror failed: $e");
       }
-    } catch (e) {
-      debugPrint("Piped failed: $e");
     }
 
-    // 3. Worker fallback (Optional but kept for Gaana/Compatibility)
+    // 3. Worker fallback
     try {
-      final response = await http.get(
-        Uri.parse("$_workerUrl/fetch?id=$cleanId"),
-      );
+      final response = await http
+          .get(Uri.parse("$_workerUrl/fetch?id=$cleanId"))
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final url = data['response'];
-        if (url != null && url.startsWith("https://")) {
-          debugPrint("Worker success fallback");
+        final url = data['response']?.toString() ?? '';
+        if (url.startsWith("https://")) {
+          debugPrint("Worker fallback success");
           return url;
         }
       }
@@ -180,7 +200,7 @@ class MusicApiService {
       debugPrint("Worker fallback failed: $e");
     }
 
-    debugPrint("All stream sources failed");
+    debugPrint("All stream sources failed for: $cleanId");
     return "";
   }
 

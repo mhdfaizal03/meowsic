@@ -12,10 +12,11 @@ import '../controllers/favorites_controller.dart';
 import '../controllers/playlist_controller.dart';
 import '../services/download_service.dart';
 import '../core/theme.dart';
+import '../widgets/glass_container.dart';
 import 'lyrics_screen.dart';
 
 class PlayerScreen extends StatefulWidget {
-  PlayerScreen({Key? key}) : super(key: key);
+  PlayerScreen({super.key});
 
   @override
   _PlayerScreenState createState() => _PlayerScreenState();
@@ -129,7 +130,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [dominantColor.withOpacity(0.8), AppTheme.background],
+                  colors: [dominantColor.withValues(alpha: 0.8), AppTheme.background],
                 ),
               ),
             ),
@@ -141,7 +142,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
                   // Rotating Album Artwork
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 50.0),
                     child: Hero(
                       tag: 'album_art_${song.id}',
                       child: AnimatedBuilder(
@@ -157,19 +158,17 @@ class _PlayerScreenState extends State<PlayerScreen>
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.5),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
+                                color: dominantColor.withValues(alpha: 0.5),
+                                blurRadius: 40,
+                                spreadRadius: 5,
                               ),
                             ],
                           ),
                           child: ClipOval(
                             child: CachedNetworkImage(
                               imageUrl: song.image,
-                              width: (MediaQuery.of(context).size.width - 80)
-                                  .clamp(100.0, 400.0),
-                              height: (MediaQuery.of(context).size.width - 80)
-                                  .clamp(100.0, 400.0),
+                              width: MediaQuery.of(context).size.width * 0.7,
+                              height: MediaQuery.of(context).size.width * 0.7,
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -183,228 +182,151 @@ class _PlayerScreenState extends State<PlayerScreen>
 
                   const Spacer(),
 
-                  // Title and Favorite button
+                  // Title and Artist
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                song.title,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "Meowsic Subtitles",
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          song.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
                           ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        // Favorite Icon
-                        Obx(() {
-                          final isFav = favController.isFavorite(song.id);
-                          return IconButton(
-                            icon: Icon(
-                              isFav ? Icons.favorite : Icons.favorite_border,
-                              color: isFav ? AppTheme.primary : Colors.white,
-                              size: 30,
-                            ),
-                            onPressed: () => favController.toggleFavorite(song),
-                          );
-                        }),
+                        const SizedBox(height: 8),
+                        Text(
+                          song.artist.toUpperCase(),
+                          style: TextStyle(
+                            color: AppTheme.primary.withValues(alpha: 0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 40),
 
-                  // Progress Bar
+                  // Glassmorphic Control Panel
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Obx(() {
-                      final duration = controller.duration.value;
-                      final position = controller.position.value;
-
-                      return Column(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: GlassContainer(
+                      borderRadius: BorderRadius.circular(30),
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+                      child: Column(
                         children: [
-                          SliderTheme(
-                            data: SliderThemeData(
-                              trackHeight: 4,
-                              activeTrackColor: Colors.white,
-                              inactiveTrackColor: Colors.white.withOpacity(0.3),
-                              thumbColor: Colors.white,
-                              thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 6,
-                              ),
-                              overlayShape: const RoundSliderOverlayShape(
-                                overlayRadius: 14,
-                              ),
-                            ),
-                            child: Slider(
-                              min: 0,
-                              max: duration.inSeconds.toDouble() > 0
-                                  ? duration.inSeconds.toDouble()
-                                  : 1,
-                              value: position.inSeconds.toDouble().clamp(
-                                0.0,
-                                duration.inSeconds.toDouble() > 0
-                                    ? duration.inSeconds.toDouble()
-                                    : 1.0,
-                              ),
-                              onChanged: (value) {
-                                controller.seek(
-                                  Duration(seconds: value.toInt()),
-                                );
-                              },
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          // Progress Bar
+                          Obx(() {
+                            final duration = controller.duration.value;
+                            final position = controller.position.value;
+                            return Column(
                               children: [
-                                Text(
-                                  _formatDuration(position),
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.7),
+                                SliderTheme(
+                                  data: SliderThemeData(
+                                    trackHeight: 3,
+                                    activeTrackColor: AppTheme.primary,
+                                    inactiveTrackColor: Colors.white10,
+                                    thumbColor: Colors.white,
+                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                    overlayColor: AppTheme.primary.withValues(alpha: 0.2),
+                                  ),
+                                  child: Slider(
+                                    min: 0,
+                                    max: duration.inSeconds.toDouble() > 0 ? duration.inSeconds.toDouble() : 1,
+                                    value: position.inSeconds.toDouble().clamp(0.0, duration.inSeconds.toDouble() > 0 ? duration.inSeconds.toDouble() : 1.0),
+                                    onChanged: (value) => controller.seek(Duration(seconds: value.toInt())),
                                   ),
                                 ),
-                                Text(
-                                  _formatDuration(duration),
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.7),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(_formatDuration(position), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                      Text(_formatDuration(duration), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                    ],
                                   ),
                                 ),
                               ],
-                            ),
+                            );
+                          }),
+                          const SizedBox(height: 10),
+
+                          // Main Controls
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Obx(() => IconButton(
+                                icon: Icon(Icons.shuffle, color: controller.isShuffleModeEnabled.value ? AppTheme.primary : Colors.white38),
+                                onPressed: controller.toggleShuffle,
+                              )),
+                              IconButton(
+                                icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 45),
+                                onPressed: controller.playPrevious,
+                              ),
+                              Obx(() {
+                                final isPlaying = controller.isPlaying.value;
+                                return GestureDetector(
+                                  onTap: () => isPlaying ? controller.pause() : controller.resume(),
+                                  child: Container(
+                                    height: 70, width: 70,
+                                    decoration: const BoxDecoration(shape: BoxShape.circle, color: AppTheme.primary),
+                                    child: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, color: Colors.white, size: 45),
+                                  ),
+                                );
+                              }),
+                              IconButton(
+                                icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 45),
+                                onPressed: controller.playNext,
+                              ),
+                              Obx(() {
+                                final loopMode = controller.loopMode.value;
+                                return IconButton(
+                                  icon: Icon(loopMode == LoopMode.one ? Icons.repeat_one : Icons.repeat, 
+                                    color: (loopMode == LoopMode.all || loopMode == LoopMode.one) ? AppTheme.primary : Colors.white38),
+                                  onPressed: controller.toggleRepeat,
+                                );
+                              }),
+                            ],
                           ),
                         ],
-                      );
-                    }),
+                      ),
+                    ),
                   ),
 
-                  const SizedBox(height: 10),
-
-                  // Playback Controls
+                  // Bottom Action Bar
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Shuffle Mode
                         Obx(() {
-                          final isShuffle =
-                              controller.isShuffleModeEnabled.value;
+                          final isFav = favController.isFavorite(song.id);
                           return IconButton(
-                            icon: Icon(
-                              Icons.shuffle,
-                              color: isShuffle
-                                  ? AppTheme.primary
-                                  : Colors.white.withOpacity(0.6),
-                            ),
-                            onPressed: controller.toggleShuffle,
+                            icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: isFav ? Colors.redAccent : Colors.white54, size: 28),
+                            onPressed: () => favController.toggleFavorite(song),
                           );
                         }),
-
-                        // Previous
                         IconButton(
-                          icon: const Icon(
-                            Icons.skip_previous,
-                            color: Colors.white,
-                            size: 40,
-                          ),
-                          onPressed: controller.playPrevious,
+                          icon: const Icon(Icons.download_for_offline_outlined, color: Colors.white54, size: 28),
+                          onPressed: () => DownloadService.downloadSong(song),
                         ),
-
-                        // Play/Pause
-                        Obx(() {
-                          final isPlaying = controller.isPlaying.value;
-                          return Container(
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppTheme.primary,
-                            ),
-                            child: IconButton(
-                              icon: Icon(
-                                isPlaying ? Icons.pause : Icons.play_arrow,
-                                color: Colors.white,
-                                size: 50,
-                              ),
-                              onPressed: () {
-                                if (isPlaying) {
-                                  controller.pause();
-                                } else {
-                                  controller.resume();
-                                }
-                              },
-                            ),
-                          );
-                        }),
-
-                        // Next
                         IconButton(
-                          icon: const Icon(
-                            Icons.skip_next,
-                            color: Colors.white,
-                            size: 40,
-                          ),
-                          onPressed: controller.playNext,
+                          icon: const Icon(Icons.share_outlined, color: Colors.white54, size: 26),
+                          onPressed: () {}, // Future share logic
                         ),
-
-                        // Repeat Mode
-                        Obx(() {
-                          final loopMode = controller.loopMode.value;
-                          return IconButton(
-                            icon: Icon(
-                              loopMode == LoopMode.one
-                                  ? Icons.repeat_one
-                                  : Icons.repeat,
-                              color:
-                                  (loopMode == LoopMode.all ||
-                                      loopMode == LoopMode.one)
-                                  ? AppTheme.primary
-                                  : Colors.white.withOpacity(0.6),
-                            ),
-                            onPressed: controller.toggleRepeat,
-                          );
-                        }),
                       ],
                     ),
                   ),
-
-                  // Download Button
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20.0),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.download_rounded,
-                        color: Colors.white54,
-                        size: 30,
-                      ),
-                      onPressed: () {
-                        DownloadService.downloadSong(song);
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
                 ],
               ),
             ),

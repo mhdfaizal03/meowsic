@@ -10,7 +10,7 @@ import '../widgets/mini_player.dart';
 import '../core/theme.dart';
 
 class PlaylistScreen extends StatelessWidget {
-  PlaylistScreen({Key? key}) : super(key: key);
+  PlaylistScreen({super.key});
 
   final PlaylistController controller = Get.put(PlaylistController());
   final TextEditingController createController = TextEditingController();
@@ -30,9 +30,9 @@ class PlaylistScreen extends StatelessWidget {
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: "Playlist Name",
-            hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: AppTheme.primary.withOpacity(0.5)),
+              borderSide: BorderSide(color: AppTheme.primary.withValues(alpha: 0.5)),
             ),
             focusedBorder: const UnderlineInputBorder(
               borderSide: BorderSide(color: AppTheme.primary),
@@ -59,87 +59,70 @@ class PlaylistScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text("My Playlists"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () => _showCreateDialog(context),
-          ),
-        ],
-      ),
+      backgroundColor: AppTheme.background,
       body: Stack(
         children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF1E1332), AppTheme.background],
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 120,
+                pinned: true,
+                backgroundColor: AppTheme.background,
+                elevation: 0,
+                title: const Text("My Playlists", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 28),
+                    onPressed: () => _showCreateDialog(context),
+                  ),
+                  const SizedBox(width: 10),
+                ],
               ),
-            ),
-          ),
-          SafeArea(
-            child: Obx(() {
-              if (controller.playlists.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.queue_music,
-                        size: 80,
-                        color: Colors.white.withOpacity(0.2),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        "No playlists yet",
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
-                          fontSize: 18,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Text(
+                    "Your personal collection of tracks organized by lists.",
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
+                  ),
+                ),
+              ),
+              Obx(() {
+                if (controller.playlists.isEmpty) {
+                  return SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.queue_music, size: 80, color: Colors.white.withValues(alpha: 0.1)),
+                          const SizedBox(height: 20),
+                          const Text("NO PLAYLISTS YET", style: TextStyle(color: Colors.white38, letterSpacing: 2)),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                            child: const Text("CREATE ONE", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                            onPressed: () => _showCreateDialog(context),
                           ),
-                        ),
-                        icon: const Icon(Icons.add),
-                        label: const Text("Create One"),
-                        onPressed: () => _showCreateDialog(context),
+                        ],
                       ),
-                    ],
+                    ),
+                  );
+                }
+
+                return SliverPadding(
+                  padding: const EdgeInsets.only(bottom: 120),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((_, i) {
+                      return PlaylistTile(
+                        playlist: controller.playlists[i],
+                        onTap: () => Get.to(() => PlaylistDetailScreen(playlist: controller.playlists[i]), transition: Transition.rightToLeft),
+                      );
+                    }, childCount: controller.playlists.length),
                   ),
                 );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.only(
-                  bottom: 100,
-                ), // padding for mini player
-                physics: const BouncingScrollPhysics(),
-                itemCount: controller.playlists.length,
-                itemBuilder: (_, i) {
-                  return PlaylistTile(
-                    playlist: controller.playlists[i],
-                    onTap: () {
-                      Get.to(
-                        () => PlaylistDetailScreen(
-                          playlist: controller.playlists[i],
-                        ),
-                        transition: Transition.rightToLeft,
-                      );
-                    },
-                  );
-                },
-              );
-            }),
+              }),
+            ],
           ),
           Positioned(bottom: 0, left: 0, right: 0, child: MiniPlayer()),
         ],
@@ -164,29 +147,50 @@ class PlaylistDetailScreen extends StatelessWidget {
             physics: const BouncingScrollPhysics(),
             slivers: [
               SliverAppBar(
-                expandedHeight: 250,
+                expandedHeight: 300,
                 pinned: true,
-                backgroundColor: AppTheme.surface,
+                backgroundColor: AppTheme.background,
+                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                  onPressed: () => Get.back(),
+                ),
                 flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: true,
-                  title: Text(
-                    playlist.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
                       Container(
-                        color: AppTheme.primary.withOpacity(0.2),
-                        child: Icon(
-                          Icons.library_music,
-                          size: 100,
-                          color: AppTheme.primary.withOpacity(0.3),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [AppTheme.primary.withValues(alpha: 0.3), AppTheme.background],
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(Icons.library_music, size: 100, color: AppTheme.primary.withValues(alpha: 0.2)),
                         ),
                       ),
-                      BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                        child: Container(color: Colors.black.withOpacity(0.3)),
+                      Positioned(
+                        bottom: 40,
+                        left: 20,
+                        right: 20,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              playlist.name,
+                              style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold, letterSpacing: -1),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "${playlist.songs.length} LOCAL TRACKS",
+                              style: TextStyle(color: AppTheme.primary.withValues(alpha: 0.8), fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -194,26 +198,17 @@ class PlaylistDetailScreen extends StatelessWidget {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primary,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                         ),
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text(
-                          "Play All",
-                          style: TextStyle(fontSize: 16),
-                        ),
+                        icon: const Icon(Icons.play_arrow_rounded, color: Colors.black),
+                        label: const Text("PLAY ALL", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                         onPressed: () {
                           if (playlist.songs.isNotEmpty) {
                             controller.playPlaylist(playlist);

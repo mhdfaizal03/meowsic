@@ -9,14 +9,14 @@ class PlaylistTile extends StatelessWidget {
   final Playlist playlist;
   final VoidCallback onTap;
 
-  const PlaylistTile({Key? key, required this.playlist, required this.onTap})
-    : super(key: key);
+  const PlaylistTile({super.key, required this.playlist, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final playlistController = Get.find<PlaylistController>();
 
     return GlassContainer(
+      onTap: onTap,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(12),
       child: ListTile(
@@ -25,7 +25,7 @@ class PlaylistTile extends StatelessWidget {
           width: 55,
           height: 55,
           decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.2),
+            color: AppTheme.primary.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(
@@ -45,7 +45,7 @@ class PlaylistTile extends StatelessWidget {
         subtitle: Text(
           "${playlist.songs.length} songs",
           style: TextStyle(
-            color: AppTheme.textSecondary.withOpacity(0.8),
+            color: AppTheme.textSecondary.withValues(alpha: 0.8),
             fontSize: 13,
           ),
         ),
@@ -68,7 +68,6 @@ class PlaylistTile extends StatelessWidget {
             );
           },
         ),
-        onTap: onTap,
       ),
     );
   }

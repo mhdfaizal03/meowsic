@@ -13,15 +13,4 @@ class SpotifyRepository {
 
     return tracks.map((e) => TrackModel.fromJson(e)).toList();
   }
-
-  Future<bool> playTrack(String token, String trackId) async {
-    try {
-      final responseCode = await api.putRequest("/me/player/play", token, {
-        "uris": ["spotify:track:$trackId"]
-      });
-      return responseCode == 204;
-    } catch (e) {
-      return false;
-    }
-  }
 }

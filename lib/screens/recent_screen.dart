@@ -5,9 +5,10 @@ import '../controllers/music_controller.dart';
 import '../widgets/song_tile.dart';
 import '../widgets/mini_player.dart';
 import '../core/theme.dart';
+import '../widgets/home_widgets.dart';
 
 class RecentScreen extends StatelessWidget {
-  RecentScreen({Key? key}) : super(key: key);
+  RecentScreen({super.key});
 
   final RecentController controller = Get.put(RecentController());
   final MusicController musicController = Get.find<MusicController>();
@@ -15,65 +16,47 @@ class RecentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text("Recently Played"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      backgroundColor: AppTheme.background,
       body: Stack(
         children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF4A00E0),
-                  AppTheme.background,
-                ], // Blueish gradient for recent
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              MusicSliverHeader(
+                title: "History", 
+                subtitle: "Recently played",
+                icon: Icons.history,
+                baseColor: const Color(0xFF4A00E0),
               ),
-            ),
-          ),
-          SafeArea(
-            child: Obx(() {
-              if (controller.recentTracks.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.history,
-                        size: 80,
-                        color: Colors.white.withOpacity(0.2),
+              Obx(() {
+                if (controller.recentTracks.isEmpty) {
+                  return SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.history, size: 80, color: Colors.white.withValues(alpha: 0.1)),
+                          const SizedBox(height: 16),
+                          const Text("NO HISTORY YET", style: TextStyle(color: Colors.white38, letterSpacing: 2)),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        "No recently played songs",
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
-                          fontSize: 18,
-                        ),
-                      ),
-                    ],
+                    ),
+                  );
+                }
+
+                return SliverPadding(
+                  padding: const EdgeInsets.only(bottom: 120),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((_, i) {
+                      return SongTile(
+                        song: controller.recentTracks[i],
+                        onTap: () => musicController.playSong(controller.recentTracks[i]),
+                      );
+                    }, childCount: controller.recentTracks.length),
                   ),
                 );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.only(bottom: 100),
-                physics: const BouncingScrollPhysics(),
-                itemCount: controller.recentTracks.length,
-                itemBuilder: (_, i) {
-                  return SongTile(
-                    song: controller.recentTracks[i],
-                    onTap: () {
-                      musicController.playSong(controller.recentTracks[i]);
-                    },
-                  );
-                },
-              );
-            }),
+              }),
+            ],
           ),
           Positioned(bottom: 0, left: 0, right: 0, child: MiniPlayer()),
         ],

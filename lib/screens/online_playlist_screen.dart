@@ -46,7 +46,7 @@ class OnlinePlaylistScreen extends StatelessWidget {
                     Icon(
                       Icons.error_outline,
                       size: 60,
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                     ),
                     const SizedBox(height: 16),
                     const Text(
@@ -62,9 +62,14 @@ class OnlinePlaylistScreen extends StatelessWidget {
               physics: const BouncingScrollPhysics(),
               slivers: [
                 SliverAppBar(
-                  expandedHeight: 300,
+                  expandedHeight: 340,
                   pinned: true,
                   backgroundColor: AppTheme.background,
+                  elevation: 0,
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                    onPressed: () => Get.back(),
+                  ),
                   flexibleSpace: FlexibleSpaceBar(
                     background: Stack(
                       fit: StackFit.expand,
@@ -74,29 +79,51 @@ class OnlinePlaylistScreen extends StatelessWidget {
                             imageUrl: controller.headerImageUrl.value,
                             fit: BoxFit.cover,
                           ),
-                        // Dark Gradient Overlay for text readability
+                        
+                        // Glassmorphic Gradient Overlay
                         Container(
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, AppTheme.background],
+                              colors: [
+                                Colors.transparent,
+                                AppTheme.background.withValues(alpha: 0.5),
+                                AppTheme.background,
+                              ],
+                              stops: const [0, 0.7, 1],
                             ),
                           ),
                         ),
+
+                        // Playlist Info
                         Positioned(
-                          bottom: 20,
+                          bottom: 40,
                           left: 20,
                           right: 20,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.5)),
+                                ),
+                                child: Text(
+                                  isAlbum ? "ALBUM" : "PLAYLIST",
+                                  style: const TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
                               Text(
                                 controller.title.value,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 32,
+                                  fontSize: 36,
                                   fontWeight: FontWeight.bold,
+                                  letterSpacing: -1,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -105,8 +132,9 @@ class OnlinePlaylistScreen extends StatelessWidget {
                               Text(
                                 controller.subtitle.value,
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.8),
-                                  fontSize: 18,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -119,29 +147,34 @@ class OnlinePlaylistScreen extends StatelessWidget {
                   ),
                 ),
 
-                // Play all button row
+                // Actions Header
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        FloatingActionButton(
-                          backgroundColor: AppTheme.primary,
-                          child: const Icon(
-                            Icons.play_arrow,
-                            color: Colors.white,
-                            size: 30,
-                          ),
+                        ElevatedButton.icon(
                           onPressed: () {
                             if (controller.tracks.isNotEmpty) {
                               musicController.playSong(controller.tracks.first);
-                              // Can also trigger queue replacement here natively if required later
                             }
                           },
+                          icon: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 28),
+                          label: const Text("PLAY ALL", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        IconButton(
+                          icon: const Icon(Icons.shuffle, color: Colors.white54),
+                          onPressed: () {},
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.more_vert, color: Colors.white54),
+                          onPressed: () {},
                         ),
                       ],
                     ),

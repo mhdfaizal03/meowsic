@@ -20,11 +20,36 @@ class SpotifySearchScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          "Spotify Premium",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Spotify Premium",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+            ),
+            const SizedBox(width: 8),
+            Obx(() => Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: controller.isConnected.value ? Colors.green : Colors.red,
+                boxShadow: [
+                  if (controller.isConnected.value)
+                    BoxShadow(color: Colors.green.withValues(alpha: 0.5), blurRadius: 5, spreadRadius: 2)
+                ],
+              ),
+            )),
+          ],
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => controller.connectToRemote(),
+            tooltip: "Reconnect Spotify",
+          )
+        ],
       ),
       body: Stack(
         children: [
@@ -39,7 +64,7 @@ class SpotifySearchScreen extends StatelessWidget {
                   Color(0xFF191414), // Spotify Black
                   AppTheme.background,
                 ],
-                stops: [0.0, 0.3, 1.0],
+                stops: const [0.0, 0.3, 1.0],
               ),
             ),
           ),
@@ -60,7 +85,7 @@ class SpotifySearchScreen extends StatelessWidget {
                       decoration: InputDecoration(
                         border: InputBorder.none,
                         hintText: "What do you want to listen to?",
-                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                         icon: const Icon(Icons.search, color: Colors.white),
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.clear, color: Colors.white54),
@@ -87,7 +112,7 @@ class SpotifySearchScreen extends StatelessWidget {
 
                     return ListView.builder(
                       physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.only(bottom: 100),
+                      padding: const EdgeInsets.only(bottom: 120),
                       itemCount: controller.trackModels.length,
                       itemBuilder: (context, index) {
                         final track = controller.trackModels[index];
@@ -99,9 +124,71 @@ class SpotifySearchScreen extends StatelessWidget {
               ],
             ),
           ),
+          
+          // Spotify Now Playing Bar
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: _buildSpotifyPlayerBar(),
+          ),
         ],
       ),
     );
+  }
+
+  Widget _buildSpotifyPlayerBar() {
+    return Obx(() {
+      if (controller.currentTrackName.isEmpty) return const SizedBox.shrink();
+      
+      return Container(
+        margin: const EdgeInsets.all(16),
+        child: GlassContainer(
+          height: 70,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              const Icon(Icons.speaker_group, color: Color(0xFF1DB954), size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      controller.currentTrackName.value,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      controller.currentArtistName.value,
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.skip_previous, color: Colors.white),
+                onPressed: () => controller.skipPrevious(),
+              ),
+              IconButton(
+                icon: Icon(
+                  controller.isSpotifyPlaying.value ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                  color: Colors.white,
+                  size: 32,
+                ),
+                onPressed: () => controller.isSpotifyPlaying.value ? controller.pause() : controller.resume(),
+              ),
+              IconButton(
+                icon: const Icon(Icons.skip_next, color: Colors.white),
+                onPressed: () => controller.skipNext(),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildInitialState() {
@@ -109,11 +196,11 @@ class SpotifySearchScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.music_note, size: 80, color: Colors.white.withOpacity(0.1)),
+          Icon(Icons.music_note, size: 80, color: Colors.white.withValues(alpha: 0.1)),
           const SizedBox(height: 16),
           Text(
             "Search for your favorite Spotify tracks",
-            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 16),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 16),
           ),
         ],
       ),
@@ -188,7 +275,7 @@ class SpotifySearchScreen extends StatelessWidget {
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (context, error, stackTrace) => Container(
                       width: 60,
                       height: 60,
                       color: Colors.white12,
@@ -217,7 +304,7 @@ class SpotifySearchScreen extends StatelessWidget {
                     Text(
                       track.artist,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 14,
                       ),
                       maxLines: 1,

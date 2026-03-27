@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -13,6 +14,12 @@ import 'controllers/playlist_controller.dart';
 import 'controllers/spotify_controller.dart';
 import 'controllers/phish_controller.dart';
 import 'controllers/external_music_controller.dart';
+import 'controllers/recent_controller.dart';
+import 'controllers/favorites_controller.dart';
+import 'screens/favorites_screen.dart';
+import 'screens/recent_screen.dart';
+import 'screens/local_songs_screen.dart';
+import 'screens/playlist_screen.dart';
 import 'services/phish_service.dart';
 import 'services/external_music_service.dart';
 
@@ -21,9 +28,20 @@ void main() async {
 
   await GetStorage.init();
 
-  // Initialize Isar
+  // Initialize Isar — recover from stale DB if schema changed between builds.
   final dir = await getApplicationDocumentsDirectory();
-  final isar = await Isar.open([IsarSongSchema], directory: dir.path);
+  Isar isar;
+  try {
+    isar = await Isar.open([StoredSongSchema], directory: dir.path);
+  } catch (e) {
+    // "Collection id is invalid" occurs when the on-disk DB was created with
+    // an old schema (e.g. after a model rename). Delete the stale file and retry.
+    final dbFile = File('${dir.path}/default.isar');
+    final dbLockFile = File('${dir.path}/default.isar.lock');
+    if (await dbFile.exists()) await dbFile.delete();
+    if (await dbLockFile.exists()) await dbLockFile.delete();
+    isar = await Isar.open([StoredSongSchema], directory: dir.path);
+  }
   Get.put(isar);
 
   // Initialize background audio service
@@ -36,6 +54,8 @@ void main() async {
   Get.put(SpotifyController());
   Get.put(PhishController());
   Get.put(ExternalMusicController());
+  Get.put(RecentController());
+  Get.put(FavoritesController());
   
   // Register SERVICES (needed for direct access in MusicController)
   Get.put(PhishService());
@@ -45,7 +65,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +74,13 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: HomeScreen(),
+      getPages: [
+        GetPage(name: '/', page: () => HomeScreen()),
+        GetPage(name: '/favorites', page: () => FavoritesScreen()),
+        GetPage(name: '/history', page: () => RecentScreen()),
+        GetPage(name: '/local', page: () => LocalSongsScreen()),
+        GetPage(name: '/playlists', page: () => PlaylistScreen()),
+      ],
     );
   }
 }

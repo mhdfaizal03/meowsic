@@ -5,7 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../controllers/music_controller.dart';
 
 class LyricsScreen extends StatelessWidget {
-  LyricsScreen({Key? key}) : super(key: key);
+  LyricsScreen({super.key});
 
   final controller = Get.find<MusicController>();
 
@@ -33,7 +33,7 @@ class LyricsScreen extends StatelessWidget {
             CachedNetworkImage(imageUrl: song.image, fit: BoxFit.cover),
             BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-              child: Container(color: Colors.black.withOpacity(0.7)),
+              child: Container(color: Colors.black.withValues(alpha: 0.7)),
             ),
             SafeArea(
               child: Center(

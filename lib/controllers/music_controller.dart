@@ -42,12 +42,13 @@ class MusicController extends GetxController {
   Future<void> _loadCachedSongs() async {
     try {
       final isar = Get.find<Isar>();
-      final cached = await isar.isarSongs.where().findAll();
+      final cached = await isar.storedSongs.where().findAll();
       localSongs.value = cached
           .map(
             (e) => Song(
-              id: e.songId,
+              id: e.ytId,
               title: e.title,
+              artist: e.artist,
               image: e.image,
               source: 'local',
               localPath: e.localPath,
@@ -55,7 +56,7 @@ class MusicController extends GetxController {
           )
           .toList();
     } catch (e) {
-      print("Error loading cached songs: $e");
+      debugPrint("Error loading cached songs: $e");
     }
   }
 
@@ -66,7 +67,7 @@ class MusicController extends GetxController {
       // Auto scan local music on start
       scanLocalMusic();
     } catch (e) {
-      print("Error loading home sections: $e");
+      debugPrint("Error loading home sections: $e");
     } finally {
       isHomeLoading.value = false;
     }
@@ -82,13 +83,14 @@ class MusicController extends GetxController {
       final isar = Get.find<Isar>();
       await isar.writeTxn(() async {
         for (var s in fetched) {
-          final isarSong = IsarSong()
-            ..songId = s.id
+          final isarSong = StoredSong()
+            ..ytId = s.id
             ..title = s.title
+            ..artist = s.artist
             ..image = s.image
             ..localPath = s.localPath
             ..lastPlayed = DateTime.now();
-          await isar.isarSongs.put(isarSong);
+          await isar.storedSongs.put(isarSong);
         }
       });
     }
@@ -129,7 +131,7 @@ class MusicController extends GetxController {
     try {
       songs.value = await MusicApiService.searchSongs(query);
     } catch (e) {
-      print("Search Error: $e");
+      debugPrint("Search Error: $e");
       Get.snackbar(
         "Search Failed",
         "Could not fetch results. Please try again.",
@@ -142,6 +144,11 @@ class MusicController extends GetxController {
   Future playSong(Song song, {List<Song>? newQueue}) async {
     if (newQueue != null) {
       currentQueue.value = newQueue;
+    } else if (song.source == 'local') {
+      // If we play from local, make sure local songs are in queue if it's empty
+      if (currentQueue.isEmpty) {
+        currentQueue.value = List.from(localSongs);
+      }
     } else if (currentQueue.isEmpty && songs.isNotEmpty) {
       currentQueue.value = List.from(songs);
     } else if (!currentQueue.any((s) => s.id == song.id)) {
@@ -159,10 +166,18 @@ class MusicController extends GetxController {
     try {
       String url = '';
       if (song.localPath != null && song.localPath!.isNotEmpty) {
-        url = song.localPath!;
+        // Ensure local file path is properly formatted as a URI for just_audio
+        final path = song.localPath!;
+        if (path.startsWith('/') || (path.length > 1 && path[1] == ':')) {
+          url = Uri.file(path).toString();
+        } else {
+          url = path;
+        }
       } else if (song.source == 'phish') {
         url = await Get.find<PhishService>().fetchStreamUrl(song.id);
-      } else if (['gaama', 'seevn', 'hunjama', 'mtmusic', 'wunk'].contains(song.source)) {
+      } else if (song.id.startsWith('ext:') ||
+          ['gaama', 'seevn', 'hunjama', 'mtmusic', 'wunk']
+              .contains(song.source)) {
         url = await ExternalMusicService.fetchStreamUrl(song.id);
       } else {
         url = await MusicApiService.fetchSongUrl(song.id);
@@ -182,12 +197,15 @@ class MusicController extends GetxController {
       debugPrint("Attempting to play valid stream: $url");
 
       try {
+        final artUri = song.image.isNotEmpty
+            ? Uri.tryParse(song.image)
+            : null;
         final mediaItem = MediaItem(
           id: song.id,
           album: "Meowsic",
           title: song.title,
-          artist: "YouTube Music",
-          artUri: Uri.parse(song.image),
+          artist: "Meowsic",
+          artUri: artUri,
         );
         audioHandler.mediaItem.add(mediaItem);
 
@@ -198,10 +216,10 @@ class MusicController extends GetxController {
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
           },
         );
-        audioHandler.play();
+        await audioHandler.play();
       } catch (e) {
         debugPrint("Initial setUrl failed, retrying... Error: $e");
-        // Retry logic: fetch fresh URL and try again once
+        // Retry once with a freshly fetched URL
         await Future.delayed(const Duration(seconds: 1));
         url = await MusicApiService.fetchSongUrl(song.id);
 
@@ -213,7 +231,7 @@ class MusicController extends GetxController {
                   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
             },
           );
-          audioHandler.play();
+          await audioHandler.play();
         } else {
           throw Exception("Retry failed: URL empty or invalid");
         }
@@ -225,7 +243,7 @@ class MusicController extends GetxController {
         currentLyrics.value = "Lyrics not available.";
       }
     } catch (e) {
-      print("Final Playback Error: $e");
+      debugPrint("Final Playback Error: $e");
       Get.snackbar(
         "Playback Failed",
         "Could not load this track. Please check your connection or try another song.",

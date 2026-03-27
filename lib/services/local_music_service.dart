@@ -1,5 +1,7 @@
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import '../models/song_model.dart';
 
 class LocalMusicService {
@@ -7,10 +9,18 @@ class LocalMusicService {
 
   /// Request storage permissions
   static Future<bool> requestPermission() async {
-    if (await Permission.storage.request().isGranted ||
-        await Permission.audio.request().isGranted) {
+    if (kIsWeb) return true;
+    
+    // For Android 13+ (SDK 33+), we need to request Permission.audio
+    if (await Permission.audio.request().isGranted) {
       return true;
     }
+    
+    // Fallback for older Android versions
+    if (await Permission.storage.request().isGranted) {
+      return true;
+    }
+    
     return false;
   }
 
@@ -30,14 +40,15 @@ class LocalMusicService {
             (s) => Song(
               id: s.id.toString(),
               title: s.title,
+              artist: s.artist ?? 'Unknown Artist',
               image: '',
               source: 'local',
-              localPath: s.uri ?? '',
+              localPath: s.data, // This is the absolute file path
             ),
           )
           .toList();
     } catch (e) {
-      print("Error fetching local songs: $e");
+      debugPrint("Error fetching local songs: $e");
       return [];
     }
   }
